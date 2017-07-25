@@ -1,0 +1,23 @@
+{
+  "name": "release-checker",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Matthew McNeeney <mmcneeney@pivotal.io>",
+  "license": "MIT",
+  "dependencies": {
+    "async": "^2.5.0",
+    "cfenv": "^1.0.4",
+    "express": "^4.15.3",
+    "github-api": "^3.0.0",
+    "moment": "^2.18.1",
+    "node-cron": "^1.2.0",
+    "pug": "^2.0.0-rc.2",
+    "serve-favicon": "^2.4.3",
+    "slack-node": "^0.1.8"
+  }
+}

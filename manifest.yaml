@@ -1,0 +1,9 @@
+applications:
+- name: release-tracker
+  buildpack: https://github.com/cloudfoundry/nodejs-buildpack
+  instances: 1
+  memory: 512M
+  disk_quota: 512M
+  host: release-tracker
+  health-check-type: http
+  health-check-http-endpoint: /health

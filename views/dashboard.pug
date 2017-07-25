@@ -1,0 +1,45 @@
+html
+  head
+    title='SAPI Release Tracker'
+    link(rel='stylesheet', href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css')
+    style
+      include style.css
+  body
+    .container
+      .header.clearfix(style={'margin-top': '15px'})
+        div.col-xs-12
+          h1 #SAPI Release Checker #[span(id='countdown', style={'float': 'right'})]
+      if commitData == null
+        .jumbotron(style={'margin-top': '15px'})
+          p Loading data...
+      else
+        .jumbotron(style={'margin-top': '15px', 'background-color': '#008774', 'color': 'white', 'position': 'relative'})
+          div.dollar
+          div.row
+            div.col-xs-12.col-sm-6
+              h2 Latest CF Release:
+                a.subtle(href=latestCfRelease.url, target='_blank') #{latestCfRelease.name}
+              h3(style={'opacity': '0.8'}) #{latestCfRelease.date}
+            div.col-xs-12.col-sm-6
+              h2 Latest CAPI Release:
+                a.subtle(href=latestCapiRelease.url, target='_blank') #{latestCapiRelease.name}
+              h3(style={'opacity': '0.8'}) #{latestCapiRelease.date}
+        .jumbotron(style={'margin-top': '15px'})
+          each changes in commitData
+            div(style={'margin-bottom': '10px' })
+              h3
+                a(href=changes.cf_release_url, target='_blank') #{changes.head}
+                a(href=changes.capi_release_url, target='_blank', style={'margin-left': '10px'}) (CAPI #{changes.capi_version})
+              if !changes.commits.length
+                p No changes
+              else
+                p #{changes.commits.length} commits
+                each commit in changes.commits
+                  div.well
+                    h3 #{commit.commit.message.split('\n')[0]}
+                    h4 #{commit.commit.author.name}, #{commit.prettyDate}
+                    p !{commit.commit.message.split('\n').slice(1).join('<br>')}
+                    a(href=commit.html_url, target='_blank') #{commit.sha.slice(0, 8)}
+            hr
+  script
+    include script.js
