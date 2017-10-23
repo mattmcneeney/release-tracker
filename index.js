@@ -18,6 +18,9 @@ app.get('/', function(request, response) {
 app.get('/health', function(request, response) {
    response.send();
 });
+app.get('/test-slack', function(request, response) {
+   slacker.test(request, response);
+});
 
 const port = process.env.PORT || 3000;
 

@@ -72,6 +72,15 @@ function generateNotification(message) {
    });
 }
 
+function test(request, response) {
+   if (process.env.SLACK_WEBHOOK == null || process.env.SLACK_CHANNEL == null) {
+      response.status(400).send('Missing required environmental variables');
+      return;
+   }
+   generateNotification('Testing testing 1, 2, 3');
+   response.send();
+}
+
 function startTracking() {
    if (process.env.SLACK_WEBHOOK == null || process.env.SLACK_CHANNEL == null) {
       return;
@@ -87,3 +96,4 @@ function startTracking() {
 
 exports.startTracking = startTracking;
 exports.generateNotification = generateNotification;
+exports.test = test;
