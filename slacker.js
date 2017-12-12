@@ -5,29 +5,28 @@ const GitHub = require('github-api'),
    Slack = require('slack-node'),
    cfenv = require('cfenv');
 
-let LATEST_CF_RELEASE = null;
+let LATEST_CF_DEPLOYMENT = null;
 let LATEST_CAPI_RELEASE = null;
 
 const gh = new GitHub({
    token: process.env.GITHUB_TOKEN
 });
-const cfRelease = gh.getRepo('cloudfoundry', 'cf-release');
+const cfDeployment = gh.getRepo('cloudfoundry', 'cf-deployment');
 const capiRelease = gh.getRepo('cloudfoundry', 'capi-release');
 
 var slack = null;
 
-function checkForNewCFRelease() {
-   cfRelease.listReleases(function(err, data) {
+function checkForNewCFDeployment() {
+   cfDeployment.listReleases(function(err, data) {
       if (err) {
          console.error('Error getting release data: ' + err);
          return;
       }
       var release = data[0].tag_name;
-      if ((LATEST_CF_RELEASE != null) && (release != LATEST_CF_RELEASE)) {
-         console.log('New release detected: ' + release);
-         generateNotification('New CF release detected: ' + release);
+      if ((LATEST_CF_DEPLOYMENT != null) && (release != LATEST_CF_DEPLOYMENT)) {
+         generateNotification('New CF deployment detected: ' + release);
       }
-      LATEST_CF_RELEASE = release;
+      LATEST_CF_DEPLOYMENT = release;
    });
 }
 
@@ -82,14 +81,14 @@ function test(request, response) {
 }
 
 function startTracking() {
-   if (process.env.SLACK_WEBHOOK == null || process.env.SLACK_CHANNEL == null) {
-      return;
-   }
+   // if (process.env.SLACK_WEBHOOK == null || process.env.SLACK_CHANNEL == null) {
+   //    return;
+   // }
    slack = new Slack();
    slack.setWebhook(process.env.SLACK_WEBHOOK);
-   checkForNewCFRelease();
+   checkForNewCFDeployment();
    checkForNewCapiRelease();
-   cron.schedule('*/5 * * * *', checkForNewCFRelease).start();
+   cron.schedule('*/5 * * * *', checkForNewCFDeployment).start();
    cron.schedule('*/5 * * * *', checkForNewCapiRelease).start();
    console.log('Slack integration enabled');
 }

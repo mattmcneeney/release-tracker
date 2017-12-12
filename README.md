@@ -1,7 +1,7 @@
 # release-tracker
 
 Track which commits, from a list of committers, make it into an official
-[CF release](https://github.com/cloudfoundry/cf-release/releases) via the
+[CF deployment](https://github.com/cloudfoundry/cf-deployment/releases) via the
 [CAPI release](https://github.com/cloudfoundry/capi-release) and
 [cloud_controller_ng](https://github.com/cloudfoundry/cloud_controller_ng/)
 repos.
@@ -30,7 +30,7 @@ cf set-env release-tracker GITHUB_TOKEN <token>
 cf start release-tracker
 ```
 
-If you would also like a Slack message alert when a new CF release is cut,
+If you would also like a Slack message alert when a new CF deployment is cut,
 you should provide the `SLACK_WEBHOOK` and `SLACK_CHANNEL` environmental
 variables. Webhooks usually look like `https://hooks.slack.com/services/xxx/xxx`.
 ```bash

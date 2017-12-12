@@ -4,7 +4,9 @@ const async = require('async'),
    fs = require('fs'),
    cron = require('node-cron'),
    GitHub = require('github-api'),
-   moment = require('moment');
+   moment = require('moment'),
+   request = require('request'),
+   yaml = require('js-yaml');
 
 const gh = new GitHub({
    token: process.env.GITHUB_TOKEN
@@ -17,7 +19,7 @@ let CACHED_DATA = null;
 const COMMITTERS = fs.readFileSync('COMMITTERS.txt').toString().split('\n');
 
 // Fetch required repos
-const cfRelease = gh.getRepo('cloudfoundry', 'cf-release');
+const cfDeployment = gh.getRepo('cloudfoundry', 'cf-deployment');
 const capiRelease = gh.getRepo('cloudfoundry', 'capi-release');
 const cloudControllerNg = gh.getRepo('cloudfoundry', 'cloud_controller_ng');
 let capiReleases = [];
@@ -25,7 +27,7 @@ let capiReleases = [];
 function getCommitsInLatestReleases(callback) {
    // Get latest releases (tags)
    async.parallel({
-      latestCfReleases: function(cb) { cfRelease.listReleases(cb) },
+      latestCfDeployments: function(cb) { cfDeployment.listReleases(cb) },
       latestCapiReleases: function(cb) { capiRelease.listReleases(cb) }
    },
    function(err, results) {
@@ -34,18 +36,18 @@ function getCommitsInLatestReleases(callback) {
          return;
       }
 
-      const latestTag = results.latestCfReleases[0][0].tag_name;
-      const previousTag = results.latestCfReleases[0][1].tag_name;
-      const olderTag = results.latestCfReleases[0][2].tag_name;
-      const oldererTag = results.latestCfReleases[0][3].tag_name;
+      const latestTag = results.latestCfDeployments[0][0].tag_name;
+      const previousTag = results.latestCfDeployments[0][1].tag_name;
+      const olderTag = results.latestCfDeployments[0][2].tag_name;
+      const oldererTag = results.latestCfDeployments[0][3].tag_name;
 
       // Save the CAPI releases as we will need them later
       capiReleases = results.latestCapiReleases[0];
 
-      const latestCfRelease = {
-         name: results.latestCfReleases[0][0].tag_name,
-         date: generateDateString(results.latestCfReleases[0][0].published_at),
-         url: 'https://github.com/cloudfoundry/cf-release/releases/tag/' + results.latestCfReleases[0][0].tag_name
+      const latestCfDeployment = {
+         name: results.latestCfDeployments[0][0].tag_name,
+         date: generateDateString(results.latestCfDeployments[0][0].published_at),
+         url: 'https://github.com/cloudfoundry/cf-deployment/releases/tag/' + results.latestCfDeployments[0][0].tag_name
       };
       const latestCapiRelease = {
          name: results.latestCapiReleases[0][0].tag_name,
@@ -55,9 +57,9 @@ function getCommitsInLatestReleases(callback) {
 
       async.map(
          [
-            [ results.latestCfReleases[0][0].tag_name, results.latestCfReleases[0][1].tag_name ],
-            [ results.latestCfReleases[0][1].tag_name, results.latestCfReleases[0][2].tag_name ],
-            [ results.latestCfReleases[0][2].tag_name, results.latestCfReleases[0][3].tag_name ]
+            [ results.latestCfDeployments[0][0].tag_name, results.latestCfDeployments[0][1].tag_name ],
+            [ results.latestCfDeployments[0][1].tag_name, results.latestCfDeployments[0][2].tag_name ],
+            [ results.latestCfDeployments[0][2].tag_name, results.latestCfDeployments[0][3].tag_name ]
          ],
          function(tags, callback) {
             getChangesBetweenTags(tags[0], tags[1], callback);
@@ -69,17 +71,17 @@ function getCommitsInLatestReleases(callback) {
             }
             callback(null, {
                commitData: results,
-               latestCfRelease: latestCfRelease,
+               latestCfDeployment: latestCfDeployment,
                latestCapiRelease: latestCapiRelease
             });
       });
    });
 }
 
-function getChangesBetweenTags(cfReleaseHead, cfReleaseBase, callback) {
+function getChangesBetweenTags(cfDeploymentHead, cfDeploymentBase, callback) {
    async.parallel({
-      capiHead: function(cb) { getCapiSha(cfReleaseHead, cb); },
-      capiBase: function(cb) { getCapiSha(cfReleaseBase, cb); }
+      capiHead: function(cb) { getCloudControllerSha(cfDeploymentHead, cb); },
+      capiBase: function(cb) { getCloudControllerSha(cfDeploymentBase, cb); }
    },
    function(err, results) {
       if (err) {
@@ -95,7 +97,7 @@ function getChangesBetweenTags(cfReleaseHead, cfReleaseBase, callback) {
          data.commits.forEach(function(commit) {
             try {
                if (COMMITTERS.indexOf(commit.author.login) > -1) {
-                  commit.prettyDate = moment(commit.author.date).format('ddd MMMM Do');
+                  commit.prettyDate = moment(commit.commit.author.date).format('ddd MMMM Do');
                   sapiCommits.unshift(commit);
                }
             } catch (e) {
@@ -103,40 +105,48 @@ function getChangesBetweenTags(cfReleaseHead, cfReleaseBase, callback) {
             }
          });
          callback(null, {
-            head: cfReleaseHead,
-            base: cfReleaseBase,
-            cf_release_url: 'https://github.com/cloudfoundry/cf-release/releases/tag/' + cfReleaseHead,
-            capi_release_url: 'https://github.com/cloudfoundry/capi-release/commit/' + results.capiHead.capiReleaseSha,
-            capi_version: getCapiReleaseFromSha(results.capiHead.capiReleaseSha),
+            head: cfDeploymentHead,
+            base: cfDeploymentBase,
+            cf_release_url: 'https://github.com/cloudfoundry/cf-deployment/releases/tag/' + cfDeploymentHead,
+            capi_release_url: 'https://github.com/cloudfoundry/capi-release/releases/tag/' + results.capiHead.capiReleaseTag,
+            capi_version: results.capiHead.capiReleaseTag,
             commits: sapiCommits
          });
       });
    });
 }
 
-function getCapiReleaseFromSha(sha) {
-   for (let i = 0; i < capiReleases.length; i++) {
-      if (sha == capiReleases[i].target_commitish) {
-         return capiReleases[i].tag_name;
-      }
-   }
-   return 'not found';
-}
-
-function getCapiSha(sha, callback) {
-   cfRelease.getContents(sha, 'src/capi-release', false, function(err, capiReleaseContents) {
+function getCloudControllerSha(sha, callback) {
+   cfDeployment.getContents(sha, 'cf-deployment.yml', false, function(err, manifest) {
       if (err) {
          callback(err, null);
          return;
       }
-      capiRelease.getContents(capiReleaseContents.sha, 'src/cloud_controller_ng', false, function(err, ccContents) {
+
+      // Download the manifest
+      request({
+         url: manifest.download_url,
+         headers: { 'User-Agent': 'request' }
+      }, function (err, response, body) {
          if (err) {
             callback(err, null);
             return;
          }
-         callback(null, {
-            capiReleaseSha: capiReleaseContents.sha,
-            ccSha: ccContents.sha
+
+         // Decode the YAML and get the CAPI release SHA
+         let manifest = yaml.safeLoad(response.body, 'utf8');
+         let capiReleaseTag = manifest.releases.filter(release => release.name == 'capi')[0].version;
+
+         // Get the corresponding cloud_controller_ng SHA
+         capiRelease.getContents(capiReleaseTag, 'src/cloud_controller_ng', false, function(err, ccContents) {
+            if (err) {
+               callback(err, null);
+               return;
+            }
+            callback(null, {
+               capiReleaseTag: capiReleaseTag,
+               ccSha: ccContents.sha
+            });
          });
       });
    });
