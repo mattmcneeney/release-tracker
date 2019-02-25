@@ -9,7 +9,8 @@ html
       .header.clearfix(style={'margin-top': '15px'})
         div.col-xs-12
           h1 #SAPI Release Checker #[span(id='countdown', style={'float': 'right'})]
-      if commitData == null
+          pre Started: #{started}
+      if data.commitData == null
         .jumbotron(style={'margin-top': '15px'})
           p Loading data...
       else
@@ -17,15 +18,15 @@ html
           div.dollar
           div.row
             div.col-xs-12.col-sm-6
-              h2 Latest CF Deployment: 
-                a.subtle(href=latestCfDeployment.url, target='_blank') #{latestCfDeployment.name}
-              h3(style={'opacity': '0.8'}) #{latestCfDeployment.date}
+              h2 Latest CF Deployment:
+                a.subtle(href=data.latestCfDeployment.url, target='_blank', style={'margin-left': '10px'}) #{data.latestCfDeployment.name}
+              h3(style={'opacity': '0.8'}) #{data.latestCfDeployment.date}
             div.col-xs-12.col-sm-6
-              h2 Latest CAPI Release: 
-                a.subtle(href=latestCapiRelease.url, target='_blank') #{latestCapiRelease.name}
-              h3(style={'opacity': '0.8'}) #{latestCapiRelease.date}
+              h2 Latest CAPI Release:
+                a.subtle(href=data.latestCapiRelease.url, target='_blank', style={'margin-left': '10px'}) #{data.latestCapiRelease.name}
+              h3(style={'opacity': '0.8'}) #{data.latestCapiRelease.date}
         .jumbotron(style={'margin-top': '15px'})
-          each changes in commitData
+          each changes in data.commitData
             div(style={'margin-bottom': '10px' })
               h3
                 a(href=changes.cf_release_url, target='_blank') #{changes.head}

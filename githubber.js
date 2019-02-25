@@ -12,6 +12,9 @@ const gh = new GitHub({
    token: process.env.GITHUB_TOKEN
 });
 
+// Remember the start time
+let started = null;
+
 // Data (cached every 5 mins)
 let CACHED_DATA = null;
 
@@ -168,12 +171,16 @@ function updateData() {
 }
 
 function start() {
+   started = moment().toString();
    updateData();
    cron.schedule('*/5 * * * *', updateData).start();
 }
 
 function getData() {
-   return CACHED_DATA;
+   return {
+       data: CACHED_DATA,
+       started: started
+   };
 }
 
 exports.start = start;
