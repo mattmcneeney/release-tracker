@@ -1,5 +1,9 @@
 # release-tracker
 
+| Job | Status |
+| :-: | :----: |
+| Deploy | ![Deploy status](http://ism.ci.cf-app.com/api/v1/teams/main/pipelines/release-tracker/jobs/deploy-release-tracker/badge) |
+
 Track which commits, from a list of committers, make it into an official
 [CF deployment](https://github.com/cloudfoundry/cf-deployment/releases) via the
 [CAPI release](https://github.com/cloudfoundry/capi-release) and
