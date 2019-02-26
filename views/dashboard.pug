@@ -17,7 +17,7 @@ html
         .jumbotron(style={'margin-top': '15px', 'background-color': '#008774', 'color': 'white', 'position': 'relative'})
           div.dollar
           div.row
-            div.col-xs-12.col-sm-6
+            div.col-xs-12.col-sm-
               h2 Latest CF Deployment:
                 a.subtle(href=data.latestCfDeployment.url, target='_blank', style={'margin-left': '10px'}) #{data.latestCfDeployment.name}
               h3(style={'opacity': '0.8'}) #{data.latestCfDeployment.date}
@@ -25,12 +25,34 @@ html
               h2 Latest CAPI Release:
                 a.subtle(href=data.latestCapiRelease.url, target='_blank', style={'margin-left': '10px'}) #{data.latestCapiRelease.name}
               h3(style={'opacity': '0.8'}) #{data.latestCapiRelease.date}
+            div.col-xs-12.col-sm-6
+              h2 Latest CLI Release:
+                a.subtle(href=data.latestCli.url, target='_blank', style={'margin-left': '10px'}) #{data.latestCli.name}
+              h3(style={'opacity': '0.8'}) #{data.latestCli.date}
         .jumbotron(style={'margin-top': '15px'})
+          h2 CF Deployment + CAPI releases
           each changes in data.commitData
             div(style={'margin-bottom': '10px' })
               h3
                 a(href=changes.cf_release_url, target='_blank') #{changes.head}
                 a(href=changes.capi_release_url, target='_blank', style={'margin-left': '10px'}) (CAPI #{changes.capi_version})
+              if !changes.commits.length
+                p No changes
+              else
+                p #{changes.commits.length} commits
+                each commit in changes.commits
+                  div.well
+                    h3 #{commit.commit.message.split('\n')[0]}
+                    h4 #{commit.commit.author.name}, #{commit.prettyDate}
+                    p !{commit.commit.message.split('\n').slice(1).join('<br>')}
+                    a(href=commit.html_url, target='_blank') #{commit.sha.slice(0, 8)}
+            hr
+        .jumbotron(style={'margin-top': '15px'})
+          h2 CLI releases
+          each changes in data.cliCommitData
+            div(style={'margin-bottom': '10px' })
+              h3
+                a(href=changes.cli_release_url, target='_blank') #{changes.head}
               if !changes.commits.length
                 p No changes
               else

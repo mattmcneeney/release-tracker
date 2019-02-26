@@ -24,6 +24,7 @@ const COMMITTERS = fs.readFileSync('COMMITTERS.txt').toString().split('\n');
 // Fetch required repos
 const cfDeployment = gh.getRepo('cloudfoundry', 'cf-deployment');
 const capiRelease = gh.getRepo('cloudfoundry', 'capi-release');
+const cli = gh.getRepo('cloudfoundry', 'cli');
 const cloudControllerNg = gh.getRepo('cloudfoundry', 'cloud_controller_ng');
 let capiReleases = [];
 
@@ -31,7 +32,8 @@ function getCommitsInLatestReleases(callback) {
    // Get latest releases (tags)
    async.parallel({
       latestCfDeployments: function(cb) { cfDeployment.listReleases(cb) },
-      latestCapiReleases: function(cb) { capiRelease.listReleases(cb) }
+      latestCapiReleases: function(cb) { capiRelease.listReleases(cb) },
+      latestClis: function(cb) { cli.listReleases(cb) }
    },
    function(err, results) {
       if (err) {
@@ -39,10 +41,15 @@ function getCommitsInLatestReleases(callback) {
          return;
       }
 
-      const latestTag = results.latestCfDeployments[0][0].tag_name;
-      const previousTag = results.latestCfDeployments[0][1].tag_name;
-      const olderTag = results.latestCfDeployments[0][2].tag_name;
-      const oldererTag = results.latestCfDeployments[0][3].tag_name;
+      const latestCfDeploymentTag = results.latestCfDeployments[0][0].tag_name;
+      const previousCfDeploymentTag = results.latestCfDeployments[0][1].tag_name;
+      const olderCfDeploymentTag = results.latestCfDeployments[0][2].tag_name;
+      const oldererCfDeploymentTag = results.latestCfDeployments[0][3].tag_name;
+
+      const latestCliTag = results.latestClis[0][0].tag_name;
+      const previousCliTag = results.latestClis[0][1].tag_name;
+      const olderCliTag = results.latestClis[0][2].tag_name;
+      const oldererCliTag = results.latestClis[0][3].tag_name;
 
       // Save the CAPI releases as we will need them later
       capiReleases = results.latestCapiReleases[0];
@@ -57,26 +64,77 @@ function getCommitsInLatestReleases(callback) {
          date: generateDateString(results.latestCapiReleases[0][0].published_at),
          url: 'https://github.com/cloudfoundry/capi-release/releases/tag/' + results.latestCapiReleases[0][0].tag_name
       };
+      const latestCli = {
+         name: results.latestClis[0][0].tag_name,
+         date: generateDateString(results.latestClis[0][0].published_at),
+         url: 'https://github.com/cloudfoundry/cli/releases/tag/' + results.latestClis[0][0].tag_name
+      };
 
       async.map(
          [
-            [ results.latestCfDeployments[0][0].tag_name, results.latestCfDeployments[0][1].tag_name ],
-            [ results.latestCfDeployments[0][1].tag_name, results.latestCfDeployments[0][2].tag_name ],
-            [ results.latestCfDeployments[0][2].tag_name, results.latestCfDeployments[0][3].tag_name ]
+            [ latestCfDeploymentTag, previousCfDeploymentTag ],
+            [ previousCfDeploymentTag, olderCfDeploymentTag ],
+            [ olderCfDeploymentTag, oldererCfDeploymentTag ]
          ],
          function(tags, callback) {
             getChangesBetweenTags(tags[0], tags[1], callback);
          },
-         function(err, results) {
+         function(err, commitData) {
             if (err) {
                callback(err, null);
                return;
             }
-            callback(null, {
-               commitData: results,
-               latestCfDeployment: latestCfDeployment,
-               latestCapiRelease: latestCapiRelease
-            });
+
+            async.map(
+               [
+                  [ latestCliTag, previousCliTag ],
+                  [ previousCliTag, olderCliTag ],
+                  [ olderCliTag, oldererCliTag ]
+               ],
+               function(tags, callback) {
+                  getChangesBetweenCliTags(tags[0], tags[1], callback);
+               },
+               function(err, cliCommitData) {
+                  if (err) {
+                     callback(err, null);
+                     return;
+                  }
+
+                  callback(null, {
+                     commitData: commitData,
+                     cliCommitData: cliCommitData,
+                     latestCfDeployment: latestCfDeployment,
+                     latestCapiRelease: latestCapiRelease,
+                     latestCli: latestCli
+                  });
+               }
+            );
+      });
+   });
+}
+
+function getChangesBetweenCliTags(cliHead, cliBase, callback) {
+   cli.compareBranches(cliBase, cliHead, function(err, data) {
+      if (err) {
+         callback(err, null);
+         return;
+      }
+      let sapiCommits = [];
+      data.commits.forEach(function(commit) {
+         try {
+            if (COMMITTERS.indexOf(commit.author.login) > -1) {
+               commit.prettyDate = moment(commit.commit.author.date).format('ddd MMMM Do');
+               sapiCommits.unshift(commit);
+            }
+         } catch (e) {
+            //
+         }
+      });
+      callback(null, {
+         head: cliHead,
+         base: cliBase,
+         cli_release_url: 'https://github.com/cloudfoundry/cli/releases/tag/' + cliHead,
+         commits: sapiCommits
       });
    });
 }
