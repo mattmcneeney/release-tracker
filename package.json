@@ -10,7 +10,7 @@
   "author": "Matthew McNeeney <mmcneeney@pivotal.io>",
   "license": "MIT",
   "dependencies": {
-    "async": "^2.6.3",
+    "async": "^3.2.2",
     "cfenv": "^1.2.2",
     "express": "^4.17.1",
     "github-api": "^3.3.0",
